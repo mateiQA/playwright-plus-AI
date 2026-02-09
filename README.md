@@ -155,14 +155,11 @@ export const test = base.extend<PageFixtures>({
     await use(new LoginPage(page));
   },
   inventoryPage: async ({ page }, use) => {
-    await page.addInitScript(() => window.localStorage.clear());
     await use(new InventoryPage(page));
   },
   // ... 6 more page objects
 });
 ```
-
-The `inventoryPage` fixture clears localStorage on every navigation as a defensive measure for cart state isolation.
 
 ### Centralized Test Data
 

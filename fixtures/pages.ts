@@ -31,8 +31,6 @@ export const test = base.extend<PageFixtures>({
   },
 
   inventoryPage: async ({ page }, use) => {
-    // Clear cart state on every navigation for test isolation
-    await page.addInitScript(() => window.localStorage.clear());
     await use(new InventoryPage(page));
   },
 

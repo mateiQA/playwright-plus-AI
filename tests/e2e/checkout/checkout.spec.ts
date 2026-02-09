@@ -164,6 +164,33 @@ test.describe('Checkout', () => {
     await cartPage.expectBadgeCount(1);
   });
 
+  test('Should not allow checkout with empty cart', async ({
+    cartPage,
+    checkoutStepOnePage,
+    checkoutStepTwoPage,
+  }) => {
+    test.fail(); // Known bug: SauceDemo allows completing checkout with 0 items ($0.00 total)
+
+    // Go directly to cart without adding any items
+    await cartPage.goto();
+    await cartPage.expectToBeVisible();
+    await cartPage.expectItemCount(0);
+    await cartPage.expectBadgeNotVisible();
+
+    // Attempt to checkout with empty cart
+    await cartPage.clickCheckout();
+    await checkoutStepOnePage.fillInfo(
+      TEST_DATA.CHECKOUT.FIRST_NAME,
+      TEST_DATA.CHECKOUT.LAST_NAME,
+      TEST_DATA.CHECKOUT.ZIP_CODE,
+    );
+    await checkoutStepOnePage.clickContinue();
+
+    // The app should have blocked checkout before reaching the overview page
+    // but it doesn't - it shows a $0.00 order that can be completed
+    await checkoutStepTwoPage.expectItemCount(1);
+  });
+
   test('Cancel checkout from step two', async ({
     inventoryPage,
     cartPage,
