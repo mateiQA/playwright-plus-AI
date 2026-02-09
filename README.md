@@ -82,12 +82,13 @@ playwright/
 │   │   ├── playwright-test-generator.md
 │   │   ├── playwright-test-generator-custom.md
 │   │   └── playwright-test-healer.md
+│   ├── skills/
+│   │   └── playwright-cli/             # CLI browser skills (auto-installed)
 │   └── docs/                           # Reference docs for agents
 │
 ├── specs/                              # Test planning documents
 │   └── saucedemo.plan.md
 │
-├── .mcp.json                           # Playwright MCP server config
 ├── playwright.config.ts                # Multi-project config
 ├── package.json
 └── .gitignore
@@ -319,14 +320,22 @@ npx playwright show-report
 
 ---
 
-## AI Agents (Claude Code + Playwright MCP)
+## AI Agents (Claude Code + playwright-cli)
 
-This project includes custom [Claude Code](https://docs.anthropic.com/en/docs/agents-and-tools/claude-code/overview) agent configurations that integrate with the [Playwright MCP server](https://github.com/anthropics/playwright-test-mcp-server) for AI-assisted test planning, generation, and healing.
+This project includes custom [Claude Code](https://docs.anthropic.com/en/docs/agents-and-tools/claude-code/overview) agent configurations that use [`playwright-cli`](https://www.npmjs.com/package/@playwright/cli) for AI-assisted test planning, generation, and healing. The CLI approach is ~4x more token-efficient than the MCP server approach (26.8K vs 114.5K tokens for the same browser task).
 
 ### Prerequisites
 
-- [Claude Code CLI](https://docs.anthropic.com/en/docs/agents-and-tools/claude-code/overview) installed
-- The `.mcp.json` file in the project root configures the Playwright MCP server automatically
+```bash
+# Install playwright-cli globally
+npm i -g @playwright/cli@latest
+
+# Set up browser and install Claude Code skills
+playwright-cli install
+playwright-cli install --skills
+```
+
+This creates `.claude/skills/playwright-cli/` with the skill definition and reference docs that agents use automatically.
 
 ### Agent Overview
 
@@ -337,6 +346,11 @@ This project includes custom [Claude Code](https://docs.anthropic.com/en/docs/ag
 │   ├── playwright-test-generator.md           # Default Playwright test generator
 │   ├── playwright-test-generator-custom.md    # Custom generator (follows POM pattern)
 │   └── playwright-test-healer.md              # Debugs and fixes failing tests
+│
+├── skills/
+│   └── playwright-cli/                         # Installed by playwright-cli install --skills
+│       ├── SKILL.md                            # CLI command reference
+│       └── references/                         # Detailed docs (tracing, mocking, etc.)
 │
 ├── docs/                                       # Reference docs agents read before generating
 │   ├── page-object-model-pattern.md
@@ -411,7 +425,7 @@ claude "Use the playwright-test-healer agent to fix failing tests"
 
 The healer will:
 - Run all tests and identify failures
-- Debug each failing test with `test_debug`
+- Open the browser with `playwright-cli` and reproduce the failure
 - Take browser snapshots to understand the current page state
 - Update selectors, assertions, or timing issues
 - Re-run until tests pass (or mark as `test.fixme()` if the app has a genuine bug)
@@ -424,12 +438,15 @@ Create a new file in `.claude/agents/` with YAML frontmatter:
 ---
 name: my-custom-agent
 description: 'What this agent does'
-tools: Glob, Grep, Read, LS, mcp__playwright-test__browser_click, mcp__playwright-test__browser_snapshot
+tools: Glob, Grep, Read, LS, Write, Bash(playwright-cli:*)
 model: sonnet
 color: blue
 ---
 
 Your agent instructions here...
+
+You use `playwright-cli` to interact with the browser.
+See `.claude/skills/playwright-cli/SKILL.md` for the full command reference.
 
 # Before generating, read existing patterns:
 1. Read('fixtures/pages.ts')
