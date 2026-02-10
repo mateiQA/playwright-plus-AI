@@ -1,6 +1,6 @@
 # Playwright + TypeScript Test Automation Framework
 
-A scalable test automation framework built with **Playwright** and **TypeScript**, using the **Page Object Model** pattern. Features fixture-based dependency injection, multi-project configuration with auth state reuse, centralized test data, and Allure reporting.
+A scalable test automation framework built with **Playwright** and **TypeScript**, using the **Page Object Model** pattern. Features fixture-based dependency injection, shared components via DI, multi-project configuration with auth state reuse, data-driven testing, centralized test data, and Allure reporting.
 
 **Target application:** [SauceDemo](https://www.saucedemo.com/) (demo e-commerce site)
 
@@ -26,7 +26,7 @@ npm install
 # Install browsers
 npx playwright install
 
-# Run all tests (56 tests across 5 projects)
+# Run all tests (57 tests across 5 projects)
 npm test
 
 # Run with visible browser
@@ -49,13 +49,14 @@ npx playwright test tests/e2e/checkout/checkout.spec.ts
 playwright/
 ├── pages/                              # Page Object Models
 │   ├── LoginPage.ts                    # Login form interactions
-│   ├── InventoryPage.ts                # Product listing, cart, sorting
+│   ├── InventoryPage.ts                # Product listing, sorting
 │   ├── ProductDetailPage.ts            # Single product view
 │   ├── CartPage.ts                     # Shopping cart management
 │   ├── CheckoutStepOnePage.ts          # Checkout form (customer info)
 │   ├── CheckoutStepTwoPage.ts          # Checkout overview (totals, payment)
 │   ├── CheckoutCompletePage.ts         # Order confirmation
-│   └── MenuComponent.ts               # Hamburger menu (shared component)
+│   ├── HeaderComponent.ts             # Cart icon, badge, hamburger menu (fixture-injected)
+│   └── MenuComponent.ts               # Hamburger menu links (shared component)
 │
 ├── fixtures/                           # Custom Playwright fixtures
 │   └── pages.ts                        # Page object dependency injection
@@ -70,7 +71,7 @@ playwright/
 │   │   ├── authentication/             # Login, logout, validation (8 tests)
 │   │   ├── product-catalog/            # Sorting, details, inventory (7 tests)
 │   │   ├── shopping-cart/              # Add, remove, badge, persistence (9 tests)
-│   │   ├── checkout/                   # Full flow, validation, cancel (7 tests)
+│   │   ├── checkout/                   # Full flow, validation, cancel (8 tests)
 │   │   ├── navigation/                 # Menu, footer, back buttons (7 tests)
 │   │   └── problem-user/              # Known bug documentation (4 tests)
 │   └── api/
@@ -83,7 +84,8 @@ playwright/
 │   │   ├── playwright-test-generator-custom.md
 │   │   └── playwright-test-healer.md
 │   ├── skills/
-│   │   └── playwright-cli/             # CLI browser skills (auto-installed)
+│   │   ├── playwright-cli/             # CLI browser skills (auto-installed)
+│   │   └── playwright-best-practices/  # POM, fixtures, locators, test data, annotations
 │   └── docs/                           # Reference docs for agents
 │
 ├── specs/                              # Test planning documents
@@ -100,7 +102,7 @@ playwright/
 
 ### Page Object Model
 
-Each page is a class with three layers: **locators** (getters), **actions** (async methods), and **assertions** (expect methods).
+Each page is a class with three layers: **locators** (getters), **actions** (async methods), and **assertions** (expect methods). Shared UI elements (header, menu) are separate components injected as fixtures — page objects don't know about them.
 
 ```typescript
 export class InventoryPage {
@@ -111,8 +113,8 @@ export class InventoryPage {
   }
 
   // --- Locators as getters (static elements) ---
-  get cartBadge(): Locator {
-    return this.page.locator('[data-test="shopping-cart-badge"]');
+  get inventoryItems(): Locator {
+    return this.page.locator('[data-test="inventory-item"]');
   }
 
   // --- Actions (async methods) ---
@@ -123,8 +125,8 @@ export class InventoryPage {
   }
 
   // --- Assertions ---
-  async expectBadgeCount(count: number): Promise<void> {
-    await expect(this.cartBadge).toHaveText(String(count));
+  async expectProductCount(count: number): Promise<void> {
+    await expect(this.inventoryItems).toHaveCount(count);
   }
 }
 ```
@@ -144,9 +146,9 @@ await item.getByRole('button', { name: 'Add to cart' }).click();
 
 This approach doesn't break when product names contain special characters like `()` or `.`.
 
-### Custom Fixtures
+### Custom Fixtures & Dependency Injection
 
-Page objects are injected into tests via Playwright's fixture system. Fixtures are **lazy** — only instantiated when a test destructures them.
+Page objects and shared components are injected into tests via Playwright's fixture system. Fixtures are **lazy** — only instantiated when a test destructures them.
 
 ```typescript
 // fixtures/pages.ts
@@ -154,10 +156,24 @@ export const test = base.extend<PageFixtures>({
   loginPage: async ({ page }, use) => {
     await use(new LoginPage(page));
   },
+  headerComponent: async ({ page }, use) => {
+    await use(new HeaderComponent(page));
+  },
   inventoryPage: async ({ page }, use) => {
     await use(new InventoryPage(page));
   },
   // ... 6 more page objects
+});
+```
+
+**HeaderComponent as a fixture:** The header (cart icon, cart badge, hamburger menu) appears on every page. Instead of composing it inside each page object, it's a standalone fixture injected directly into tests. This means page objects don't need to know about the header, and adding new page objects requires zero header boilerplate.
+
+```typescript
+// Tests destructure only the fixtures they need
+test('Add item to cart', async ({ inventoryPage, headerComponent }) => {
+  await inventoryPage.addToCart(PRODUCTS.BACKPACK.name);
+  await headerComponent.expectBadgeCount(1);  // Header is its own fixture
+  await headerComponent.goToCart();            // Not inventoryPage.goToCart()
 });
 ```
 
@@ -174,6 +190,42 @@ await loginPage.login(USERS.STANDARD.username, USERS.STANDARD.password);
 ```
 
 No hardcoded strings in test files — if a product name or price changes, update one file.
+
+### Data-Driven Testing
+
+Repetitive test scenarios (e.g. form validation) use a `for...of` loop over a scenarios array. Each scenario registers as an individual test in the runner and report:
+
+```typescript
+const validationScenarios = [
+  { name: 'missing first name', firstName: '', lastName: 'Doe', zipCode: '12345',
+    expectedError: ERROR_MESSAGES.FIRST_NAME_REQUIRED },
+  { name: 'missing last name', firstName: 'John', lastName: '', zipCode: '12345',
+    expectedError: ERROR_MESSAGES.LAST_NAME_REQUIRED },
+  // ...
+];
+
+for (const { name, firstName, lastName, zipCode, expectedError } of validationScenarios) {
+  test(`Checkout validation - ${name}`, async ({ inventoryPage, headerComponent, cartPage, checkoutStepOnePage }) => {
+    await inventoryPage.addToCart(PRODUCTS.BACKPACK.name);
+    await headerComponent.goToCart();
+    await cartPage.clickCheckout();
+    await checkoutStepOnePage.fillInfo(firstName, lastName, zipCode);
+    await checkoutStepOnePage.clickContinue();
+    await checkoutStepOnePage.expectErrorMessage(expectedError);
+  });
+}
+```
+
+### Smoke Tags
+
+Core happy-path tests are tagged with `@smoke` for fast CI feedback:
+
+```bash
+# Run only smoke tests
+npx playwright test --grep @smoke
+```
+
+Tagged tests: successful login, product inventory, product details, add to cart, view cart, complete checkout, cart navigation.
 
 ---
 
@@ -228,12 +280,12 @@ test.describe('Checkout', () => {
     await inventoryPage.goto(); // Already authenticated via storageState
   });
 
-  test('Complete checkout successfully', async ({
-    inventoryPage, cartPage, checkoutStepOnePage,
-    checkoutStepTwoPage, checkoutCompletePage,
+  test('Complete checkout successfully @smoke', async ({
+    inventoryPage, headerComponent, cartPage,
+    checkoutStepOnePage, checkoutStepTwoPage, checkoutCompletePage,
   }) => {
     await inventoryPage.addToCart(PRODUCTS.BACKPACK.name);
-    await inventoryPage.goToCart();
+    await headerComponent.goToCart();
     await cartPage.clickCheckout();
     await checkoutStepOnePage.fillInfo(
       TEST_DATA.CHECKOUT.FIRST_NAME,
@@ -252,11 +304,11 @@ test.describe('Checkout', () => {
 Tests for `problem_user` use `test.fail()` to document known bugs — the test passes if the expected failure occurs, and fails if the bug gets fixed (alerting you to verify the fix):
 
 ```typescript
-test('Problem user - add to cart inconsistency', async ({ inventoryPage }) => {
+test('Problem user - add to cart inconsistency', async ({ inventoryPage, headerComponent }) => {
   test.fail(); // Known bug: button state doesn't update after remove
   await inventoryPage.addToCart(PRODUCTS.BACKPACK.name);
   await inventoryPage.removeFromCart(PRODUCTS.BACKPACK.name);
-  await inventoryPage.expectBadgeCount(1); // Fails for problem_user
+  await headerComponent.expectBadgeCount(1); // Fails for problem_user
 });
 ```
 
@@ -297,13 +349,17 @@ npx playwright test --ui
 
 ### Trace Viewer
 
-This framework has tracing enabled (`trace: 'on'` in config). After a test run, inspect traces with:
+Tracing is configured as `trace: 'on-first-retry'` — traces are only captured when a test fails and retries, keeping test runs fast while providing full debugging data for failures. Inspect traces with:
 
 ```bash
 npx playwright show-trace test-results/<test-folder>/trace.zip
 ```
 
 Shows a timeline of every action, screenshot at each step, network requests, and console logs.
+
+### Screenshots
+
+Screenshots are captured `only-on-failure` — no storage overhead for passing tests, but you get a screenshot when a test fails.
 
 ### Test Report
 
@@ -314,6 +370,8 @@ npm run test:report
 # Built-in Playwright HTML report
 npx playwright show-report
 ```
+
+The `list` reporter is also enabled for real-time terminal output during test runs alongside Allure.
 
 ---
 
@@ -401,15 +459,15 @@ test.describe('Cart Management', () => {
     await inventoryPage.goto();
   });
 
-  test('Add single item to cart', async ({ inventoryPage }) => {
+  test('Add single item to cart', async ({ inventoryPage, headerComponent }) => {
     await inventoryPage.addToCart(PRODUCTS.BACKPACK.name);
-    await inventoryPage.expectBadgeCount(1);
+    await headerComponent.expectBadgeCount(1);
   });
 
-  test('Remove item from cart', async ({ inventoryPage }) => {
+  test('Remove item from cart', async ({ inventoryPage, headerComponent }) => {
     await inventoryPage.addToCart(PRODUCTS.BACKPACK.name);
     await inventoryPage.removeFromCart(PRODUCTS.BACKPACK.name);
-    await inventoryPage.expectBadgeNotVisible();
+    await headerComponent.expectBadgeNotVisible();
   });
 });
 ```
@@ -457,10 +515,11 @@ See `.claude/docs/CUSTOM_AGENTS_GUIDE.md` for the full guide on agent configurat
 
 ## Adding New Tests
 
-1. **Create a Page Object** in `pages/` — getters for locators, async methods for actions, `expect` methods for assertions
+1. **Create a Page Object** in `pages/` — getters for locators, async methods for actions, `expect` methods for assertions. No need to add `HeaderComponent` — it's a standalone fixture.
 2. **Register it** in `fixtures/pages.ts` — add the type and fixture entry
-3. **Write tests** in `tests/e2e/<feature>/` — import from `fixtures/pages`, use constants from `utils/constants.ts`
+3. **Write tests** in `tests/e2e/<feature>/` — import from `fixtures/pages`, destructure `headerComponent` for cart/menu interactions, use constants from `utils/constants.ts`
 4. **Add constants** — new product data, URLs, or error messages go in `utils/constants.ts`
+5. **Tag smoke tests** — add `@smoke` to core happy-path tests for fast CI feedback
 
 ---
 
@@ -468,7 +527,7 @@ See `.claude/docs/CUSTOM_AGENTS_GUIDE.md` for the full guide on agent configurat
 
 | Command | Description |
 |---------|-------------|
-| `npm test` | Run all 56 tests across all projects |
+| `npm test` | Run all 57 tests across all projects |
 | `npm run test:headed` | Run with visible browser |
 | `npm run allure:generate` | Generate Allure report from results |
 | `npm run allure:open` | Open generated Allure report |
