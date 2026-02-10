@@ -1,6 +1,7 @@
 import { test as base } from '@playwright/test';
 import { LoginPage } from '../pages/LoginPage';
 import { InventoryPage } from '../pages/InventoryPage';
+import { HeaderComponent } from '../pages/HeaderComponent';
 import { MenuComponent } from '../pages/MenuComponent';
 import { CartPage } from '../pages/CartPage';
 import { ProductDetailPage } from '../pages/ProductDetailPage';
@@ -13,6 +14,7 @@ import { CheckoutCompletePage } from '../pages/CheckoutCompletePage';
  */
 type PageFixtures = {
   loginPage: LoginPage;
+  headerComponent: HeaderComponent;
   inventoryPage: InventoryPage;
   menuComponent: MenuComponent;
   cartPage: CartPage;
@@ -28,6 +30,10 @@ type PageFixtures = {
 export const test = base.extend<PageFixtures>({
   loginPage: async ({ page }, use) => {
     await use(new LoginPage(page));
+  },
+
+  headerComponent: async ({ page }, use) => {
+    await use(new HeaderComponent(page));
   },
 
   inventoryPage: async ({ page }, use) => {

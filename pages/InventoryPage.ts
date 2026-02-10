@@ -17,27 +17,11 @@ export class InventoryPage {
   }
 
   get inventoryItems(): Locator {
-    return this.page.locator('.inventory_item');
-  }
-
-  get inventoryItemsByDataTest(): Locator {
     return this.page.locator('[data-test="inventory-item"]');
   }
 
   get firstInventoryItem(): Locator {
-    return this.inventoryItemsByDataTest.first();
-  }
-
-  get cartIcon(): Locator {
-    return this.page.locator('.shopping_cart_link');
-  }
-
-  get cartBadge(): Locator {
-    return this.page.locator('[data-test="shopping-cart-badge"]');
-  }
-
-  get hamburgerMenu(): Locator {
-    return this.page.getByRole('button', { name: 'Open Menu' });
+    return this.inventoryItems.first();
   }
 
   get sortDropdown(): Locator {
@@ -78,20 +62,6 @@ export class InventoryPage {
   }
 
   /**
-   * Open the hamburger menu
-   */
-  async openMenu(): Promise<void> {
-    await this.hamburgerMenu.click();
-  }
-
-  /**
-   * Click on the shopping cart icon
-   */
-  async goToCart(): Promise<void> {
-    await this.cartIcon.click();
-  }
-
-  /**
    * Add a product to cart by name
    */
   async addToCart(productName: string): Promise<void> {
@@ -128,8 +98,8 @@ export class InventoryPage {
    */
   async expectToBeVisible(): Promise<void> {
     await expect(this.pageTitle).toBeVisible();
-    await expect(this.cartIcon).toBeVisible();
-    await expect(this.hamburgerMenu).toBeVisible();
+    await expect(this.page.locator('[data-test="shopping-cart-link"]')).toBeVisible();
+    await expect(this.page.getByRole('button', { name: 'Open Menu' })).toBeVisible();
   }
 
   /**
@@ -137,20 +107,6 @@ export class InventoryPage {
    */
   async expectProductCount(count: number): Promise<void> {
     await expect(this.inventoryItems).toHaveCount(count);
-  }
-
-  /**
-   * Verify the cart badge count
-   */
-  async expectBadgeCount(count: number): Promise<void> {
-    await expect(this.cartBadge).toHaveText(String(count));
-  }
-
-  /**
-   * Verify the cart badge is not visible
-   */
-  async expectBadgeNotVisible(): Promise<void> {
-    await expect(this.cartBadge).not.toBeVisible();
   }
 
   /**

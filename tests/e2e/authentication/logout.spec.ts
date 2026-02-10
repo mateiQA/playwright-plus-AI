@@ -4,7 +4,7 @@ import { USERS } from '../../../utils/constants';
 
 
 test.describe('Authentication - Logout', () => {
-  test('Successful logout', async ({ loginPage, inventoryPage, menuComponent }) => {
+  test('Successful logout', async ({ loginPage, inventoryPage, headerComponent, menuComponent }) => {
     // Login with standard user
     await loginPage.goto();
     await loginPage.login(USERS.STANDARD.username, USERS.STANDARD.password);
@@ -13,7 +13,7 @@ test.describe('Authentication - Logout', () => {
     await inventoryPage.expectToBeVisible();
 
     // Open hamburger menu
-    await inventoryPage.openMenu();
+    await headerComponent.openMenu();
 
     // Verify menu items are visible
     await menuComponent.expectMenuVisible();

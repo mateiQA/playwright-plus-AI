@@ -7,8 +7,9 @@ test.describe('Checkout', () => {
     await inventoryPage.goto();
   });
 
-  test('Complete checkout successfully', async ({
+  test('Complete checkout successfully @smoke', async ({
     inventoryPage,
+    headerComponent,
     cartPage,
     checkoutStepOnePage,
     checkoutStepTwoPage,
@@ -17,10 +18,10 @@ test.describe('Checkout', () => {
     // Add two items to the cart
     await inventoryPage.addToCart(PRODUCTS.BACKPACK.name);
     await inventoryPage.addToCart(PRODUCTS.BIKE_LIGHT.name);
-    await inventoryPage.expectBadgeCount(2);
+    await headerComponent.expectBadgeCount(2);
 
     // Navigate to cart
-    await inventoryPage.goToCart();
+    await headerComponent.goToCart();
     await cartPage.expectToBeVisible();
     await cartPage.expectItemCount(2);
 
@@ -56,95 +57,70 @@ test.describe('Checkout', () => {
     await inventoryPage.expectURL();
   });
 
-  test('Checkout with missing first name', async ({
-    inventoryPage,
-    cartPage,
-    checkoutStepOnePage,
-  }) => {
-    // Add item to cart and go to checkout
-    await inventoryPage.addToCart(PRODUCTS.BACKPACK.name);
-    await inventoryPage.goToCart();
-    await cartPage.clickCheckout();
-    await checkoutStepOnePage.expectToBeVisible();
+  const validationScenarios = [
+    {
+      name: 'missing first name',
+      firstName: '',
+      lastName: TEST_DATA.CHECKOUT.LAST_NAME,
+      zipCode: TEST_DATA.CHECKOUT.ZIP_CODE,
+      expectedError: ERROR_MESSAGES.FIRST_NAME_REQUIRED,
+    },
+    {
+      name: 'missing last name',
+      firstName: TEST_DATA.CHECKOUT.FIRST_NAME,
+      lastName: '',
+      zipCode: TEST_DATA.CHECKOUT.ZIP_CODE,
+      expectedError: ERROR_MESSAGES.LAST_NAME_REQUIRED,
+    },
+    {
+      name: 'missing zip code',
+      firstName: TEST_DATA.CHECKOUT.FIRST_NAME,
+      lastName: TEST_DATA.CHECKOUT.LAST_NAME,
+      zipCode: '',
+      expectedError: ERROR_MESSAGES.POSTAL_CODE_REQUIRED,
+    },
+    {
+      name: 'all fields empty',
+      firstName: '',
+      lastName: '',
+      zipCode: '',
+      expectedError: ERROR_MESSAGES.FIRST_NAME_REQUIRED,
+    },
+  ];
 
-    // Fill only last name and zip code
-    await checkoutStepOnePage.fillInfo('', TEST_DATA.CHECKOUT.LAST_NAME, TEST_DATA.CHECKOUT.ZIP_CODE);
+  for (const { name, firstName, lastName, zipCode, expectedError } of validationScenarios) {
+    test(`Checkout validation - ${name}`, async ({
+      inventoryPage,
+      headerComponent,
+      cartPage,
+      checkoutStepOnePage,
+    }) => {
+      // Add item to cart and go to checkout
+      await inventoryPage.addToCart(PRODUCTS.BACKPACK.name);
+      await headerComponent.goToCart();
+      await cartPage.clickCheckout();
+      await checkoutStepOnePage.expectToBeVisible();
 
-    // Attempt to continue
-    await checkoutStepOnePage.clickContinue();
+      // Fill form with scenario data
+      await checkoutStepOnePage.fillInfo(firstName, lastName, zipCode);
 
-    // Verify first name required error
-    await checkoutStepOnePage.expectErrorMessage(ERROR_MESSAGES.FIRST_NAME_REQUIRED);
-  });
+      // Attempt to continue
+      await checkoutStepOnePage.clickContinue();
 
-  test('Checkout with missing last name', async ({
-    inventoryPage,
-    cartPage,
-    checkoutStepOnePage,
-  }) => {
-    // Add item to cart and go to checkout
-    await inventoryPage.addToCart(PRODUCTS.BACKPACK.name);
-    await inventoryPage.goToCart();
-    await cartPage.clickCheckout();
-    await checkoutStepOnePage.expectToBeVisible();
-
-    // Fill only first name and zip code
-    await checkoutStepOnePage.fillInfo(TEST_DATA.CHECKOUT.FIRST_NAME, '', TEST_DATA.CHECKOUT.ZIP_CODE);
-
-    // Attempt to continue
-    await checkoutStepOnePage.clickContinue();
-
-    // Verify last name required error
-    await checkoutStepOnePage.expectErrorMessage(ERROR_MESSAGES.LAST_NAME_REQUIRED);
-  });
-
-  test('Checkout with missing zip code', async ({
-    inventoryPage,
-    cartPage,
-    checkoutStepOnePage,
-  }) => {
-    // Add item to cart and go to checkout
-    await inventoryPage.addToCart(PRODUCTS.BACKPACK.name);
-    await inventoryPage.goToCart();
-    await cartPage.clickCheckout();
-    await checkoutStepOnePage.expectToBeVisible();
-
-    // Fill only first and last name
-    await checkoutStepOnePage.fillInfo(TEST_DATA.CHECKOUT.FIRST_NAME, TEST_DATA.CHECKOUT.LAST_NAME, '');
-
-    // Attempt to continue
-    await checkoutStepOnePage.clickContinue();
-
-    // Verify postal code required error
-    await checkoutStepOnePage.expectErrorMessage(ERROR_MESSAGES.POSTAL_CODE_REQUIRED);
-  });
-
-  test('Checkout with all fields empty', async ({
-    inventoryPage,
-    cartPage,
-    checkoutStepOnePage,
-  }) => {
-    // Add item to cart and go to checkout
-    await inventoryPage.addToCart(PRODUCTS.BACKPACK.name);
-    await inventoryPage.goToCart();
-    await cartPage.clickCheckout();
-    await checkoutStepOnePage.expectToBeVisible();
-
-    // Attempt to continue without filling any fields
-    await checkoutStepOnePage.clickContinue();
-
-    // Verify first name required error (first validation)
-    await checkoutStepOnePage.expectErrorMessage(ERROR_MESSAGES.FIRST_NAME_REQUIRED);
-  });
+      // Verify expected error message
+      await checkoutStepOnePage.expectErrorMessage(expectedError);
+    });
+  }
 
   test('Cancel checkout from step one', async ({
     inventoryPage,
+    headerComponent,
     cartPage,
     checkoutStepOnePage,
   }) => {
     // Add item to cart and go to checkout
     await inventoryPage.addToCart(PRODUCTS.BACKPACK.name);
-    await inventoryPage.goToCart();
+    await headerComponent.goToCart();
     await cartPage.clickCheckout();
     await checkoutStepOnePage.expectToBeVisible();
 
@@ -161,10 +137,11 @@ test.describe('Checkout', () => {
     // Verify back on cart page with items
     await cartPage.expectToBeVisible();
     await cartPage.expectItemCount(1);
-    await cartPage.expectBadgeCount(1);
+    await headerComponent.expectBadgeCount(1);
   });
 
   test('Should not allow checkout with empty cart', async ({
+    headerComponent,
     cartPage,
     checkoutStepOnePage,
     checkoutStepTwoPage,
@@ -175,7 +152,7 @@ test.describe('Checkout', () => {
     await cartPage.goto();
     await cartPage.expectToBeVisible();
     await cartPage.expectItemCount(0);
-    await cartPage.expectBadgeNotVisible();
+    await headerComponent.expectBadgeNotVisible();
 
     // Attempt to checkout with empty cart
     await cartPage.clickCheckout();
@@ -193,13 +170,14 @@ test.describe('Checkout', () => {
 
   test('Cancel checkout from step two', async ({
     inventoryPage,
+    headerComponent,
     cartPage,
     checkoutStepOnePage,
     checkoutStepTwoPage,
   }) => {
     // Add item to cart and go to checkout
     await inventoryPage.addToCart(PRODUCTS.BACKPACK.name);
-    await inventoryPage.goToCart();
+    await headerComponent.goToCart();
     await cartPage.clickCheckout();
 
     // Complete step one
@@ -218,6 +196,6 @@ test.describe('Checkout', () => {
     // Verify back on inventory page with cart badge still showing
     await inventoryPage.expectToBeVisible();
     await inventoryPage.expectURL();
-    await inventoryPage.expectBadgeCount(1);
+    await headerComponent.expectBadgeCount(1);
   });
 });

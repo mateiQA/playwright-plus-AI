@@ -7,7 +7,7 @@ test.describe('Product Catalog', () => {
     await inventoryPage.goto();
   });
 
-  test('View product inventory', async ({ inventoryPage }) => {
+  test('View product inventory @smoke', async ({ inventoryPage }) => {
     // Verify inventory page is visible
     await inventoryPage.expectToBeVisible();
 
@@ -24,7 +24,7 @@ test.describe('Product Catalog', () => {
     expect(productNames).toContain(PRODUCTS.RED_TSHIRT.name);
   });
 
-  test('View product details', async ({ inventoryPage, productDetailPage }) => {
+  test('View product details @smoke', async ({ inventoryPage, productDetailPage }) => {
     // Click on Sauce Labs Backpack
     await inventoryPage.clickProduct(PRODUCTS.BACKPACK.name);
 

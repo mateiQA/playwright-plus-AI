@@ -7,13 +7,13 @@ test.describe('Navigation', () => {
     await inventoryPage.goto();
   });
 
-  test('Menu - All Items link navigates back to inventory', async ({ inventoryPage, menuComponent, cartPage }) => {
+  test('Menu - All Items link navigates back to inventory', async ({ inventoryPage, headerComponent, menuComponent, cartPage }) => {
     // Navigate to cart page first
-    await inventoryPage.goToCart();
+    await headerComponent.goToCart();
     await cartPage.expectToBeVisible();
 
     // Open menu and verify it is visible
-    await inventoryPage.openMenu();
+    await headerComponent.openMenu();
     await menuComponent.expectMenuVisible();
 
     // Click All Items link
@@ -24,9 +24,9 @@ test.describe('Navigation', () => {
     await inventoryPage.expectURL();
   });
 
-  test('Menu - About link navigates to Sauce Labs', async ({ inventoryPage, menuComponent, page }) => {
+  test('Menu - About link navigates to Sauce Labs', async ({ headerComponent, menuComponent, page }) => {
     // Open menu
-    await inventoryPage.openMenu();
+    await headerComponent.openMenu();
 
     // Click About link
     await menuComponent.clickAbout();
@@ -35,25 +35,25 @@ test.describe('Navigation', () => {
     await expect(page).toHaveURL(/saucelabs\.com/);
   });
 
-  test('Menu - Reset App State clears cart badge', async ({ inventoryPage, menuComponent }) => {
+  test('Menu - Reset App State clears cart badge', async ({ inventoryPage, headerComponent, menuComponent }) => {
     // Add 2 items to cart
     await inventoryPage.addToCart(PRODUCTS.BACKPACK.name);
     await inventoryPage.addToCart(PRODUCTS.BIKE_LIGHT.name);
 
     // Verify badge count is 2
-    await inventoryPage.expectBadgeCount(2);
+    await headerComponent.expectBadgeCount(2);
 
     // Open menu and click Reset App State
-    await inventoryPage.openMenu();
+    await headerComponent.openMenu();
     await menuComponent.clickResetAppState();
 
     // Verify badge disappears
-    await inventoryPage.expectBadgeNotVisible();
+    await headerComponent.expectBadgeNotVisible();
   });
 
-  test('Close menu hides menu items', async ({ inventoryPage, menuComponent, page }) => {
+  test('Close menu hides menu items', async ({ headerComponent, menuComponent, page }) => {
     // Open menu and verify it is visible
-    await inventoryPage.openMenu();
+    await headerComponent.openMenu();
     await menuComponent.expectMenuVisible();
 
     // Click close button
@@ -66,9 +66,9 @@ test.describe('Navigation', () => {
     await expect(page.getByRole('link', { name: 'Reset App State' })).not.toBeVisible();
   });
 
-  test('Shopping cart icon navigates to cart page', async ({ inventoryPage, cartPage }) => {
+  test('Shopping cart icon navigates to cart page @smoke', async ({ headerComponent, cartPage }) => {
     // Click cart icon
-    await inventoryPage.goToCart();
+    await headerComponent.goToCart();
 
     // Verify cart page URL
     await cartPage.expectURL();

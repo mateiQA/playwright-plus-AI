@@ -31,7 +31,7 @@ test.describe('Problem User - Known Issues', () => {
     }
   });
 
-  test('Problem user - add to cart inconsistency', async ({ inventoryPage }) => {
+  test('Problem user - add to cart inconsistency', async ({ inventoryPage, headerComponent }) => {
     // Known failure: problem_user has button state bugs after add/remove
     test.fail();
 
@@ -40,22 +40,23 @@ test.describe('Problem User - Known Issues', () => {
 
     // Add Sauce Labs Backpack to cart
     await inventoryPage.addToCart(PRODUCTS.BACKPACK.name);
-    await inventoryPage.expectBadgeCount(1);
+    await headerComponent.expectBadgeCount(1);
 
     // Try adding Sauce Labs Bike Light
     await inventoryPage.addToCart(PRODUCTS.BIKE_LIGHT.name);
-    await inventoryPage.expectBadgeCount(2);
+    await headerComponent.expectBadgeCount(2);
 
     // Try removing Sauce Labs Backpack — for problem_user the button state
     // may not update correctly after removal
     await inventoryPage.removeFromCart(PRODUCTS.BACKPACK.name);
 
     // Badge should update to 1 but may not for problem_user
-    await inventoryPage.expectBadgeCount(1);
+    await headerComponent.expectBadgeCount(1);
   });
 
   test('Problem user - checkout form field issues', async ({
     inventoryPage,
+    headerComponent,
     cartPage,
     checkoutStepOnePage,
   }) => {
@@ -66,10 +67,10 @@ test.describe('Problem User - Known Issues', () => {
     // Add an item to cart
     await inventoryPage.expectToBeVisible();
     await inventoryPage.addToCart(PRODUCTS.BACKPACK.name);
-    await inventoryPage.expectBadgeCount(1);
+    await headerComponent.expectBadgeCount(1);
 
     // Go to cart and proceed to checkout
-    await inventoryPage.goToCart();
+    await headerComponent.goToCart();
     await cartPage.expectToBeVisible();
     await cartPage.clickCheckout();
 

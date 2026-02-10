@@ -1,5 +1,5 @@
 // Shopping Cart Tests
-import { test, expect } from '../../../fixtures/pages';
+import { test } from '../../../fixtures/pages';
 import { PRODUCTS } from '../../../utils/constants';
 
 test.describe('Shopping Cart', () => {
@@ -7,54 +7,54 @@ test.describe('Shopping Cart', () => {
     await inventoryPage.goto();
   });
 
-  test('Add single item to cart', async ({ inventoryPage }) => {
+  test('Add single item to cart @smoke', async ({ inventoryPage, headerComponent }) => {
     // Add Sauce Labs Backpack to cart
     await inventoryPage.addToCart(PRODUCTS.BACKPACK.name);
 
     // Verify badge shows 1
-    await inventoryPage.expectBadgeCount(1);
+    await headerComponent.expectBadgeCount(1);
 
     // Verify Remove button is visible for Backpack
     await inventoryPage.expectRemoveButtonVisible(PRODUCTS.BACKPACK.name);
   });
 
-  test('Add multiple items to cart', async ({ inventoryPage }) => {
+  test('Add multiple items to cart', async ({ inventoryPage, headerComponent }) => {
     // Add Backpack and verify badge count
     await inventoryPage.addToCart(PRODUCTS.BACKPACK.name);
-    await inventoryPage.expectBadgeCount(1);
+    await headerComponent.expectBadgeCount(1);
 
     // Add Bike Light and verify badge count
     await inventoryPage.addToCart(PRODUCTS.BIKE_LIGHT.name);
-    await inventoryPage.expectBadgeCount(2);
+    await headerComponent.expectBadgeCount(2);
 
     // Add Bolt T-Shirt and verify badge count
     await inventoryPage.addToCart(PRODUCTS.BOLT_TSHIRT.name);
-    await inventoryPage.expectBadgeCount(3);
+    await headerComponent.expectBadgeCount(3);
   });
 
-  test('Remove item from inventory page', async ({ inventoryPage }) => {
+  test('Remove item from inventory page', async ({ inventoryPage, headerComponent }) => {
     // Add Sauce Labs Backpack to cart
     await inventoryPage.addToCart(PRODUCTS.BACKPACK.name);
-    await inventoryPage.expectBadgeCount(1);
+    await headerComponent.expectBadgeCount(1);
 
     // Remove Sauce Labs Backpack from cart
     await inventoryPage.removeFromCart(PRODUCTS.BACKPACK.name);
 
     // Verify badge is no longer visible
-    await inventoryPage.expectBadgeNotVisible();
+    await headerComponent.expectBadgeNotVisible();
 
     // Verify Add to Cart button is visible again
     await inventoryPage.expectAddToCartButtonVisible(PRODUCTS.BACKPACK.name);
   });
 
-  test('View cart with items', async ({ inventoryPage, cartPage }) => {
+  test('View cart with items @smoke', async ({ inventoryPage, headerComponent, cartPage }) => {
     // Add three items to cart
     await inventoryPage.addToCart(PRODUCTS.BACKPACK.name);
     await inventoryPage.addToCart(PRODUCTS.BIKE_LIGHT.name);
     await inventoryPage.addToCart(PRODUCTS.BOLT_TSHIRT.name);
 
     // Navigate to cart
-    await inventoryPage.goToCart();
+    await headerComponent.goToCart();
 
     // Verify cart page is visible
     await cartPage.expectToBeVisible();
@@ -68,9 +68,9 @@ test.describe('Shopping Cart', () => {
     await cartPage.expectItemVisible(PRODUCTS.BOLT_TSHIRT.name);
   });
 
-  test('View empty cart', async ({ inventoryPage, cartPage }) => {
+  test('View empty cart', async ({ headerComponent, cartPage }) => {
     // Go directly to cart without adding items
-    await inventoryPage.goToCart();
+    await headerComponent.goToCart();
 
     // Verify cart page is visible
     await cartPage.expectToBeVisible();
@@ -79,13 +79,13 @@ test.describe('Shopping Cart', () => {
     await cartPage.expectItemCount(0);
   });
 
-  test('Remove item from cart page', async ({ inventoryPage, cartPage }) => {
+  test('Remove item from cart page', async ({ inventoryPage, headerComponent, cartPage }) => {
     // Add two items to cart
     await inventoryPage.addToCart(PRODUCTS.BACKPACK.name);
     await inventoryPage.addToCart(PRODUCTS.BIKE_LIGHT.name);
 
     // Navigate to cart
-    await inventoryPage.goToCart();
+    await headerComponent.goToCart();
 
     // Remove Sauce Labs Backpack from cart page
     await cartPage.removeItem(PRODUCTS.BACKPACK.name);
@@ -97,15 +97,15 @@ test.describe('Shopping Cart', () => {
     await cartPage.expectItemVisible(PRODUCTS.BIKE_LIGHT.name);
 
     // Verify badge shows 1
-    await cartPage.expectBadgeCount(1);
+    await headerComponent.expectBadgeCount(1);
   });
 
-  test('Continue shopping from cart', async ({ inventoryPage, cartPage }) => {
+  test('Continue shopping from cart', async ({ inventoryPage, headerComponent, cartPage }) => {
     // Add Sauce Labs Backpack to cart
     await inventoryPage.addToCart(PRODUCTS.BACKPACK.name);
 
     // Navigate to cart
-    await inventoryPage.goToCart();
+    await headerComponent.goToCart();
 
     // Click Continue Shopping
     await cartPage.clickContinueShopping();
@@ -114,31 +114,31 @@ test.describe('Shopping Cart', () => {
     await inventoryPage.expectToBeVisible();
 
     // Verify badge still shows 1
-    await inventoryPage.expectBadgeCount(1);
+    await headerComponent.expectBadgeCount(1);
   });
 
-  test('Cart badge persists across pages', async ({ inventoryPage, productDetailPage, page }) => {
+  test('Cart badge persists across pages', async ({ inventoryPage, headerComponent, productDetailPage }) => {
     // Add two items to cart
     await inventoryPage.addToCart(PRODUCTS.BACKPACK.name);
     await inventoryPage.addToCart(PRODUCTS.BIKE_LIGHT.name);
 
     // Verify badge shows 2 on inventory page
-    await inventoryPage.expectBadgeCount(2);
+    await headerComponent.expectBadgeCount(2);
 
     // Click on a product to go to detail page
     await inventoryPage.clickProduct(PRODUCTS.BACKPACK.name);
 
     // Verify badge still shows 2 on product detail page
-    await expect(page.locator('[data-test="shopping-cart-badge"]')).toHaveText('2');
+    await headerComponent.expectBadgeCount(2);
 
     // Go back to products
     await productDetailPage.goBackToProducts();
 
     // Verify badge still shows 2 on inventory page
-    await inventoryPage.expectBadgeCount(2);
+    await headerComponent.expectBadgeCount(2);
   });
 
-  test('Add all products to cart', async ({ inventoryPage, cartPage }) => {
+  test('Add all products to cart', async ({ inventoryPage, headerComponent, cartPage }) => {
     // Add all 6 products
     await inventoryPage.addToCart(PRODUCTS.BACKPACK.name);
     await inventoryPage.addToCart(PRODUCTS.BIKE_LIGHT.name);
@@ -148,10 +148,10 @@ test.describe('Shopping Cart', () => {
     await inventoryPage.addToCart(PRODUCTS.RED_TSHIRT.name);
 
     // Verify badge shows 6
-    await inventoryPage.expectBadgeCount(6);
+    await headerComponent.expectBadgeCount(6);
 
     // Navigate to cart
-    await inventoryPage.goToCart();
+    await headerComponent.goToCart();
 
     // Verify 6 items in cart
     await cartPage.expectItemCount(6);

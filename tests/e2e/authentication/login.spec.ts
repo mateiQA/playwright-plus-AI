@@ -3,7 +3,7 @@ import { test } from '../../../fixtures/pages';
 import { USERS, ERROR_MESSAGES } from '../../../utils/constants';
 
 test.describe('Authentication - Login', () => {
-  test('Successful login with standard user', async ({ loginPage, inventoryPage }) => {
+  test('Successful login with standard user @smoke', async ({ loginPage, inventoryPage }) => {
     // Navigate to login page
     await loginPage.goto();
 

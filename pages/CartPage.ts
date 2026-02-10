@@ -20,20 +20,12 @@ export class CartPage {
     return this.page.locator('[data-test="inventory-item"]');
   }
 
-  get cartBadge(): Locator {
-    return this.page.locator('[data-test="shopping-cart-badge"]');
-  }
-
   get continueShoppingButton(): Locator {
     return this.page.locator('[data-test="continue-shopping"]');
   }
 
   get checkoutButton(): Locator {
     return this.page.locator('[data-test="checkout"]');
-  }
-
-  get cartIcon(): Locator {
-    return this.page.locator('[data-test="shopping-cart-link"]');
   }
 
   // Action methods
@@ -43,13 +35,6 @@ export class CartPage {
    */
   async goto(): Promise<void> {
     await this.page.goto(URLS.CART);
-  }
-
-  /**
-   * Click the cart icon to navigate to cart
-   */
-  async clickCartIcon(): Promise<void> {
-    await this.cartIcon.click();
   }
 
   /**
@@ -90,20 +75,6 @@ export class CartPage {
    */
   async expectItemCount(count: number): Promise<void> {
     await expect(this.cartItems).toHaveCount(count);
-  }
-
-  /**
-   * Verify the cart badge count
-   */
-  async expectBadgeCount(count: number): Promise<void> {
-    await expect(this.cartBadge).toHaveText(String(count));
-  }
-
-  /**
-   * Verify the cart badge is not visible (empty cart)
-   */
-  async expectBadgeNotVisible(): Promise<void> {
-    await expect(this.cartBadge).not.toBeVisible();
   }
 
   /**

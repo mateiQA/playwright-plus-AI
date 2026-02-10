@@ -1,7 +1,8 @@
 {
   "permissions": {
     "allow": [
-      "Bash(playwright-cli:*)"
+      "Bash(playwright-cli:*)",
+      "Bash(pgrep:*)"
     ]
   }
 }
